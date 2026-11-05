@@ -24,6 +24,7 @@ import org.francasio.sing.audio.AudioProcessorBridge
 import org.francasio.sing.audio.SingAudioProcessor
 import org.francasio.sing.clock.MediaClockSyncHook
 import org.francasio.sing.hooks.AudioPipelineHooks
+import org.francasio.sing.hooks.AppearanceHooks
 import org.francasio.sing.hooks.LyricsHooks
 import org.francasio.sing.hooks.VocalControlHooks
 import org.francasio.sing.util.ReflectionUtils
@@ -61,6 +62,7 @@ private class ExactSizeDrawable(
  * Compatible with Vector 2.2, LSPosed, and non-root LSPatch 1.2.
  */
 class SingXposedEntry : XposedModule() {
+    private val appearanceHooks by lazy { AppearanceHooks(::logInfo, ::logError) }
 
     private val audioProcessorBridge = AudioProcessorBridge(
         resolveModuleApkPath = ::resolveModuleApkPath,
@@ -334,6 +336,7 @@ class SingXposedEntry : XposedModule() {
                 updateVocalButtonState(it)
             }
             instance?.lyricsHooks?.onSettingsChanged()
+            instance?.appearanceHooks?.onSettingsChanged()
         }
 
         fun getVocalSliderFraction(vocalCtrl: View): Float {
@@ -770,6 +773,7 @@ class SingXposedEntry : XposedModule() {
     }
 
     private fun installHooks(cl: ClassLoader, appInfo: ApplicationInfo?) {
+        appearanceHooks.install { executable, hooker -> hookMethod(executable, hooker = hooker) }
         hookApplicationInit(cl)
         audioPipelineHooks.install(cl)
         hookPlaybackController(cl)
@@ -838,6 +842,7 @@ class SingXposedEntry : XposedModule() {
 
         val appContext = context.applicationContext ?: context
         hostAppContext = appContext
+        (appContext as? Application)?.let { appearanceHooks.bind(it) }
         audioProcessorBridge.initializeWhenIdle(appContext, mainHandler)
     }
 

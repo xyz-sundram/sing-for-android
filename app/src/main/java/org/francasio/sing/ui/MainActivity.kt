@@ -3,6 +3,8 @@ package org.francasio.sing.ui
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.BackEventCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -58,6 +60,8 @@ import java.util.concurrent.Executors
 import kotlin.math.sin
 
 import org.francasio.sing.util.XposedStatus
+import org.francasio.sing.util.AppleMusicConnection
+import org.francasio.sing.util.AppleMusicInstallation
 
 enum class AppScreen {
     MAIN,
@@ -68,7 +72,16 @@ enum class AppScreen {
 class MainActivity : ComponentActivity() {
 
     private val bgExecutor = Executors.newSingleThreadExecutor()
-    private val isModuleLoadedState = mutableStateOf(false)
+    private val connectionStatusState = mutableStateOf(AppleMusicConnection.CHECKING)
+    private val statusExecutor = Executors.newSingleThreadExecutor()
+    private val statusHandler = Handler(Looper.getMainLooper())
+    private var appleMusicInstallation: AppleMusicInstallation? = null
+    private val refreshStatus = object : Runnable {
+        override fun run() {
+            refreshConnectionStatus()
+            statusHandler.postDelayed(this, 5000L)
+        }
+    }
     private val selectedModelIdState = mutableStateOf(SingSettings.DEFAULT_MODEL_ID)
     private val currentScreenState = mutableStateOf(AppScreen.MAIN)
     private val openedFromMusicState = mutableStateOf(false)
@@ -79,15 +92,15 @@ class MainActivity : ComponentActivity() {
     private val blurUnfocusedLyricsState = mutableStateOf(true)
     private val centerGroupLyricsState = mutableStateOf(true)
     private val englishTranslationFallbackState = mutableStateOf(true)
+    private val appleRedTintState = mutableStateOf(false)
+    private val liquidGlassState = mutableStateOf(false)
     private val ecoModeState = mutableStateOf(true)
     private val hardwareTargetState = mutableStateOf(SingSettings.TARGET_NPU)
     private val threadCountState = mutableIntStateOf(4)
     private val materialYouState = mutableStateOf(true)
     private val benchmarkState = mutableStateOf(BenchmarkUiState())
-    private val isModuleVersionMismatchState = mutableStateOf(false)
     private val appVersionState = mutableStateOf("")
     private val moduleVersionState = mutableStateOf("")
-    private val xposedManagerInfoState = mutableStateOf("")
     private val showRuntimeDownloadDialogState = mutableStateOf(false)
     private val runtimeDownloadLabelState = mutableStateOf("")
     private val runtimeDownloadProgressState = mutableFloatStateOf(0f)
@@ -104,6 +117,8 @@ class MainActivity : ComponentActivity() {
         blurUnfocusedLyricsState.value = SingSettings.blurUnfocusedLyrics
         centerGroupLyricsState.value = SingSettings.centerGroupLyrics
         englishTranslationFallbackState.value = SingSettings.englishTranslationFallback
+        appleRedTintState.value = SingSettings.appleRedTint
+        liquidGlassState.value = SingSettings.liquidGlass
         ecoModeState.value = SingSettings.ecoMode
         hardwareTargetState.value = SingSettings.hardwareTarget
         threadCountState.intValue = SingSettings.threadCount.coerceIn(1, 12)
@@ -163,23 +178,16 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        isModuleLoadedState.value = XposedStatus.isModuleActive(this)
-        isModuleVersionMismatchState.value = XposedStatus.isModuleVersionMismatch(this)
-        appVersionState.value = "v${XposedStatus.getAppVersion(this)}"
-        moduleVersionState.value = XposedStatus.getModuleVersion(this)
-        xposedManagerInfoState.value = XposedStatus.getEffectiveManagerInfo(this)
+        refreshConnectionStatus()
 
         XposedStatus.initServiceListener {
             runOnUiThread {
-                isModuleLoadedState.value = XposedStatus.isModuleActive(this)
-                isModuleVersionMismatchState.value = XposedStatus.isModuleVersionMismatch(this)
-                moduleVersionState.value = XposedStatus.getModuleVersion(this)
-                xposedManagerInfoState.value = XposedStatus.getEffectiveManagerInfo(this)
+                if (!isDestroyed) refreshConnectionStatus()
             }
         }
 
         setContent {
-            val isModuleLoaded by isModuleLoadedState
+            val connectionStatus by connectionStatusState
             val selectedModelId by selectedModelIdState
             val currentScreen by currentScreenState
             val openedFromMusic by openedFromMusicState
@@ -190,15 +198,15 @@ class MainActivity : ComponentActivity() {
             val blurUnfocusedLyrics by blurUnfocusedLyricsState
             val centerGroupLyrics by centerGroupLyricsState
             val englishTranslationFallback by englishTranslationFallbackState
+            val appleRedTint by appleRedTintState
+            val liquidGlass by liquidGlassState
             val ecoMode by ecoModeState
             val hardwareTarget by hardwareTargetState
             val threadCount by threadCountState
             val materialYou by materialYouState
             val currentBenchmarkState by benchmarkState
-            val isModuleVersionMismatch by isModuleVersionMismatchState
             val appVersion by appVersionState
             val moduleVersion by moduleVersionState
-            val xposedManagerInfo by xposedManagerInfoState
 
             var scrollToSelectedOnOpen by remember { mutableStateOf(false) }
             var backProgress by remember { mutableFloatStateOf(0f) }
@@ -272,11 +280,9 @@ class MainActivity : ComponentActivity() {
                     val canPreserveSide = activeModelInfo?.keepsBackingVocals != true
 
                     MainScreen(
-                        isModuleLoaded = isModuleLoaded,
-                        isModuleVersionMismatch = isModuleVersionMismatch,
+                        connectionStatus = connectionStatus,
                         appVersion = appVersion,
                         moduleVersion = moduleVersion,
-                        xposedManagerInfo = xposedManagerInfo,
                         preserveSide = preserveSide,
                         canPreserveSide = canPreserveSide,
                         twoWaySlider = twoWaySlider,
@@ -285,6 +291,8 @@ class MainActivity : ComponentActivity() {
                         blurUnfocusedLyrics = blurUnfocusedLyrics,
                         centerGroupLyrics = centerGroupLyrics,
                         englishTranslationFallback = englishTranslationFallback,
+                        appleRedTint = appleRedTint,
+                        liquidGlass = liquidGlass,
                         ecoMode = ecoMode,
                         hardwareTarget = hardwareTarget,
                         selectedModelId = selectedModelId,
@@ -329,6 +337,16 @@ class MainActivity : ComponentActivity() {
                                 SingSettings.KEY_ENGLISH_TRANSLATION_FALLBACK,
                                 isChecked
                             )
+                            SingSettings.broadcastSettings(this@MainActivity)
+                        },
+                        onAppleRedTintChange = { isChecked ->
+                            appleRedTintState.value = isChecked
+                            SingSettings.saveLocal(this@MainActivity, SingSettings.KEY_APPLE_RED_TINT, isChecked)
+                            SingSettings.broadcastSettings(this@MainActivity)
+                        },
+                        onLiquidGlassChange = { isChecked ->
+                            liquidGlassState.value = isChecked
+                            SingSettings.saveLocal(this@MainActivity, SingSettings.KEY_LIQUID_GLASS, isChecked)
                             SingSettings.broadcastSettings(this@MainActivity)
                         },
                         onEcoModeChange = { isChecked ->
@@ -630,8 +648,33 @@ class MainActivity : ComponentActivity() {
         checkRunBenchmarkIntent(intent)
     }
 
+    private fun refreshConnectionStatus() {
+        SingSettings.loadLocal(this)
+        connectionStatusState.value = appleMusicInstallation?.let {
+            XposedStatus.getAppleMusicConnection(this, it)
+        } ?: AppleMusicConnection.CHECKING
+        appVersionState.value = "v${XposedStatus.getAppVersion(this)}"
+        moduleVersionState.value = XposedStatus.getModuleVersion(this)
+    }
+
+    override fun onPause() {
+        statusHandler.removeCallbacks(refreshStatus)
+        super.onPause()
+    }
+
     override fun onResume() {
         super.onResume()
+        statusHandler.removeCallbacks(refreshStatus)
+        statusHandler.post(refreshStatus)
+        statusExecutor.execute {
+            val installation = XposedStatus.inspectAppleMusic(this)
+            runOnUiThread {
+                if (!isDestroyed) {
+                    appleMusicInstallation = installation
+                    refreshConnectionStatus()
+                }
+            }
+        }
         SingSettings.loadLocal(this)
         syncUiStatesWithSettings()
         // On upgrade, an ONNX model may already be selected while its runtime
@@ -652,11 +695,7 @@ class MainActivity : ComponentActivity() {
                 runOnUiThread { showRuntimeDownloadDialogState.value = false }
             }
         }
-        isModuleLoadedState.value = XposedStatus.isModuleActive(this)
-        isModuleVersionMismatchState.value = XposedStatus.isModuleVersionMismatch(this)
-        appVersionState.value = "v${XposedStatus.getAppVersion(this)}"
-        moduleVersionState.value = XposedStatus.getModuleVersion(this)
-        xposedManagerInfoState.value = XposedStatus.getEffectiveManagerInfo(this)
+        refreshConnectionStatus()
         checkRunBenchmarkIntent(intent)
     }
 
@@ -704,6 +743,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        statusHandler.removeCallbacks(refreshStatus)
+        statusExecutor.shutdown()
         bgExecutor.shutdown()
     }
 }

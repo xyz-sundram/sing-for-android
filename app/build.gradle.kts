@@ -42,7 +42,7 @@ var isMinorUpdate = false
 android {
     namespace = "org.francasio.sing"
     compileSdk = 34
-    ndkVersion = "28.0.12674087"
+    ndkVersion = providers.gradleProperty("singNdkVersion").orElse("28.0.12674087").get()
 
     defaultConfig {
         applicationId = "org.francasio.sing"

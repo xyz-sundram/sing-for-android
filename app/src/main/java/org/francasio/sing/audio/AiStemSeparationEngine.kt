@@ -102,6 +102,7 @@ class AiStemSeparationEngine(
     @Volatile var active: Boolean = false
     private var isBufferingInitialChunk = false
     @Volatile private var endOfStreamSignaled = false
+    private var underrunCount = 0L
 
     // Feature toggles
     @Volatile var preserveSide: Boolean = false
@@ -358,12 +359,17 @@ class AiStemSeparationEngine(
             MediaClockSyncHook.isBuffering = false
             MediaClockSyncHook.bufferingOffsetUs = 0L
             MediaClockSyncHook.latencyOffsetUs = 0L
-            Log.i(TAG, "AI pipeline primed! Zero-latency start. Synchronized lyrics clock.")
+            Log.i(TAG, "AI pipeline primed; separated audio is available")
         }
 
         val availableVocal = (vocalWriteFrames - vocalReadFrames).toInt()
-        val framesToOutput = minOf(frameCount, maxOf(0L, inWriteFrames - vocalReadFrames).toInt())
-        val toBlend = minOf(framesToOutput, maxOf(0, availableVocal))
+        // Retain input until its separated stem is available. Passing raw audio
+        // through here restores full vocals at every slider position on a slow
+        // backend, and skips samples before the worker can publish their stems.
+        val framesToOutput = minOf(frameCount, maxOf(0, availableVocal), maxOf(0L, inWriteFrames - vocalReadFrames).toInt())
+        if (frameCount > 0 && framesToOutput == 0 && !endOfStreamSignaled && ++underrunCount % 200L == 1L) {
+            Log.w(TAG, "Separation underrun: waiting for processed audio (input=$inWriteFrames, ready=$vocalWriteFrames, read=$vocalReadFrames)")
+        }
         var rp = vocalReadFrames
 
         val isPreserveSide = isPreserveSideActive
@@ -371,7 +377,7 @@ class AiStemSeparationEngine(
         val isInst = isInstrumental
 
         // 1. Blend neural stem
-        for (i in 0 until toBlend) {
+        for (i in 0 until framesToOutput) {
             val idx = ((rp * 2) and (RING_MASK * 2 + 1).toLong()).toInt()
             val inL = inRing[idx]
             val inR = inRing[idx + 1]
@@ -457,24 +463,6 @@ class AiStemSeparationEngine(
             outSamples[i * 2] = outL
             outSamples[i * 2 + 1] = outR
             rp++
-        }
-
-        // 2. Graceful underrun protection with smooth ramp
-        if (toBlend < framesToOutput) {
-            val missing = framesToOutput - toBlend
-            val invMissing = 1.0f / missing.toFloat()
-            for (i in toBlend until framesToOutput) {
-                val idx = ((rp * 2) and (RING_MASK * 2 + 1).toLong()).toInt()
-                val rampToRaw = (i - toBlend) * invMissing
-                val inL = inRing[idx]
-                val inR = inRing[idx + 1]
-                val lastOutL = if (toBlend > 0) outSamples[(toBlend - 1) * 2] else inL
-                val lastOutR = if (toBlend > 0) outSamples[(toBlend - 1) * 2 + 1] else inR
-
-                outSamples[i * 2] = (1.0f - rampToRaw) * lastOutL + rampToRaw * inL
-                outSamples[i * 2 + 1] = (1.0f - rampToRaw) * lastOutR + rampToRaw * inR
-                rp++
-            }
         }
 
         vocalReadFrames = rp

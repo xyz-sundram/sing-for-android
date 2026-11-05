@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "settings": {
+    "selected_model": "uvr_mdxnet_1_9703_onnx_fp32",
+    "hardware_target": "CPU",
+    "thread_count": 4,
+    "preserve_side": false,
+    "two_way_slider": true,
+    "allow_zero_floor": true,
+    "force_song_eligibility": true,
+    "center_group_lyrics": false,
+    "blur_unfocused_lyrics": false,
+    "english_translation_fallback": true,
+    "eco_mode": true,
+    "apple_red_tint": false,
+    "liquid_glass": false
+  }
+}

@@ -74,6 +74,7 @@ class SingAudioProcessor(
 
     @Volatile
     var vocalLevel: Float = 0.0f
+        set(value) { field = VocalLevel.normalize(value) }
 
     @Volatile
     @set:Synchronized
@@ -265,6 +266,8 @@ class SingAudioProcessor(
     private fun writeAvailableOutput(
         processorObj: Any, engine: AiStemSeparationEngine, sampleRate: Int, encoding: Int, frames44k: Int
     ): Int {
+        val readyFrames = minOf(frames44k.toLong(), engine.availableVocalFrames).toInt()
+        smoothedLevel = VocalLevel.smooth(smoothedLevel, vocalLevel, readyFrames)
         val outputCapacity = ((frames44k * sampleRate.toLong() + 44099) / 44100 + 2).toInt()
         ensureCapacity(maxOf(65536, maxOf(frames44k, outputCapacity) * 2))
         val produced = if (sampleRate == 44100) {
@@ -352,9 +355,6 @@ class SingAudioProcessor(
 
             val totalSamples = frameCount * channelCount
             ensureCapacity(maxOf(65536, totalSamples * 8))
-
-            val targetLevel = vocalLevel
-            smoothedLevel += 0.08f * (targetLevel - smoothedLevel)
 
             if (++logCounter % 200 == 1) {
                 Log.i(TAG, "Audio frames active: count=$logCounter, frames=$frameCount, enc=$encoding, ch=$channelCount, rate=$sampleRate, level=$smoothedLevel, singActive=$singActive, preserveSide=${engine.preserveSide}, twoWay=${engine.twoWaySlider}")
@@ -460,8 +460,8 @@ class SingAudioProcessor(
         get() = isEnabled && (aiEngine?.needsBurst == true)
 
     /**
-     * Bounded burst decoding on SVAudioRendererV2 to prime initial chunks in ~50-100ms
-     * and maintain a healthy cushion of processed audio.
+     * Feed decoded PCM ahead while waiting for chunk-based inference and maintain
+     * a cushion of processed audio. Compute time depends on the model and device.
      */
     fun maybeBurstDecode(rendererObj: Any) {
         val engine = aiEngine ?: return
@@ -484,13 +484,13 @@ class SingAudioProcessor(
     }
 
     /**
-     * Called by VocalsAudioProcessor.getOutput() hook at end of stream
-     * to drain the trailing audio frames so songs don't end prematurely.
+     * Called by getOutput() when its current buffer is empty. Inference can
+     * finish after queueInput() consumed its input, including during playback.
      */
     @Synchronized
     fun drainPendingOutput(processorObj: Any): ByteBuffer? {
         val engine = aiEngine ?: return null
-        if (!isEnabled || !engine.active || !engine.isEndOfStream) return null
+        if (!isEnabled || !engine.active) return null
 
         val inputFormat = try {
             ReflectionUtils.getObjectField(processorObj, "inputAudioFormat")

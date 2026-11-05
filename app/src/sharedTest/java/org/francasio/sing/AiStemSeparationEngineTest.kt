@@ -45,7 +45,7 @@ class AiStemSeparationEngineTest {
         assertTrue("Timed out waiting for worker", condition())
     }
 
-    @Test fun underrunDoesNotReplayAlreadyPlayedFramesAndEosBecomesIdle() {
+    @Test fun underrunRetainsUnprocessedFramesAndEosBecomesIdle() {
         val backend = Backend(blockedCall = 2)
         val engine = AiStemSeparationEngine(backend)
         try {
@@ -54,13 +54,14 @@ class AiStemSeparationEngineTest {
             engine.pushInput(FloatArray(8192 * 2) { (it / 2) / 10000f }, 8192)
             assertTrue(backend.blocked.await(3, TimeUnit.SECONDS))
             val first = FloatArray(6144 * 2)
-            assertEquals(6144, engine.popVocalAndBlend(first, 6144, 1f))
+            assertEquals(4096, engine.popVocalAndBlend(first, 6144, 1f))
+            assertEquals(0, engine.popVocalAndBlend(first, 6144, 1f))
             backend.proceed.release()
-            awaitCondition { engine.availableVocalFrames == 2048L }
-            val last = FloatArray(2048 * 2)
-            assertEquals(2048, engine.popVocalAndBlend(last, 2048, 1f))
-            assertEquals(0.6144f, last[0], 0.00001f)
-            assertEquals(0, engine.popVocalAndBlend(last, 2048, 1f))
+            awaitCondition { engine.availableVocalFrames == 4096L }
+            val last = FloatArray(4096 * 2)
+            assertEquals(4096, engine.popVocalAndBlend(last, 4096, 1f))
+            assertEquals(0.4096f, last[0], 0.00001f)
+            assertEquals(0, engine.popVocalAndBlend(last, 4096, 1f))
             engine.onEndOfStream()
             awaitCondition { engine.isEnded() }
             Thread.sleep(60)
@@ -68,6 +69,72 @@ class AiStemSeparationEngineTest {
         } finally {
             backend.proceed.release()
             engine.release()
+        }
+    }
+
+    @Test fun mutedPlaybackNeverLeaksOriginalVocalsDuringAnInferenceUnderrun() {
+        val backend = Backend(blockedCall = 2)
+        val engine = AiStemSeparationEngine(backend)
+        try {
+            engine.ecoMode = false
+            engine.activate()
+            engine.pushInput(FloatArray(8192 * 2) { 0.5f }, 8192)
+            assertTrue(backend.blocked.await(3, TimeUnit.SECONDS))
+            val output = FloatArray(8192 * 2)
+            // The backend returns the entire input as the vocal stem. Muting it
+            // must stay silent even while the second block is still computing.
+            assertEquals(4096, engine.popVocalAndBlend(output, 8192, 0f))
+            assertTrue(output.take(4096 * 2).all { kotlin.math.abs(it) < 0.00001f })
+            assertEquals(0, engine.popVocalAndBlend(output, 4096, 0f))
+            backend.proceed.release()
+            awaitCondition { engine.availableVocalFrames == 4096L }
+            assertEquals(4096, engine.popVocalAndBlend(output, 4096, 0f))
+            assertTrue(output.take(4096 * 2).all { kotlin.math.abs(it) < 0.00001f })
+        } finally {
+            backend.proceed.release()
+            engine.release()
+        }
+    }
+
+    @Test fun intermediateSliderLevelsMixBothStemTypesContinuously() {
+        val levels = listOf(0f, 0.01f, 0.05f, 0.25f, 0.5f, 0.75f, 1f)
+        for (instrumental in listOf(false, true)) for (twoWay in listOf(false, true)) {
+            val backend = object : InferenceBackend {
+                override val providerName = "controlled stems"
+                override val shortProviderName = "test"
+                override val modelInfo = ModelLoader.ModelInfo(
+                    id = "test", modelId = "test", modelDisplayName = "test", displayName = "test",
+                    targetStem = if (instrumental) "instrumental" else "vocal",
+                    networkType = "time_domain", lookaheadSize = 0,
+                    fileName = "test.vinet", fileSizeDesc = ""
+                )
+                override fun runTimeDomain(inPcm: FloatArray, outPcm: FloatArray, frameCount: Int) {
+                    for (i in 0 until frameCount * 2) outPcm[i] = if (instrumental) 0.2f else 0.3f
+                }
+                override fun close() {}
+            }
+            val engine = AiStemSeparationEngine(backend)
+            try {
+                engine.ecoMode = false
+                engine.twoWaySlider = twoWay
+                engine.activate()
+                val frames = 4096 * levels.size
+                engine.pushInput(FloatArray(frames * 2) { 0.5f }, frames)
+                engine.onEndOfStream()
+                awaitCondition { engine.availableVocalFrames == frames.toLong() }
+                for (level in levels) {
+                    val output = FloatArray(4096 * 2)
+                    assertEquals(4096, engine.popVocalAndBlend(output, 4096, level))
+                    val expected = when {
+                        !twoWay -> 0.2f + 0.3f * level
+                        level <= 0.5f -> 0.2f + 0.6f * level
+                        else -> 0.3f + 0.2f * (2f - 2f * level)
+                    }
+                    for (sample in output) assertEquals("level=$level, instrumental=$instrumental, twoWay=$twoWay", expected, sample, 0.00001f)
+                }
+            } finally {
+                engine.release()
+            }
         }
     }
 
@@ -175,8 +242,8 @@ class AiStemSeparationEngineTest {
             engine.activate()
             engine.pushInput(FloatArray(8192 * 2), 8192)
             assertTrue(backend.blocked.await(3, TimeUnit.SECONDS))
-            // Even after playback has fallen back to raw, inference still needs
-            // its retained input. Further writes must not be allowed to wrap it.
+            // Inference still needs its retained input while playback waits.
+            // Further writes must not be allowed to wrap it.
             engine.popVocalAndBlend(FloatArray(8192 * 2), 8192, 1f)
             engine.pushInput(FloatArray(600000 * 2), 600000)
             assertFalse(engine.canAcceptInput(100000))

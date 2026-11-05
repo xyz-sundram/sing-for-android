@@ -2,8 +2,12 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Platform](https://img.shields.io/badge/Platform-Android%2011%2B-green.svg)](https://android.com)
+[![Telegram](https://img.shields.io/badge/Telegram-sundramsprojeckts-26A5E4?logo=telegram&logoColor=white)](https://t.me/sundramsprojeckts)
 
 **Sing for Android** is an Xposed module that attempts to bring Apple Music's iOS-exclusive **Sing Mode** on the official Android app. It hooks into the Apple Music audio pipeline to isolate, attenuate, or boost vocals on the fly with low latency and hardware acceleration support.
+
+Updates and discussion: [Sundram's Projects on Telegram](https://t.me/sundramsprojeckts).
+This fork builds on [22cms/sing-for-android](https://github.com/22cms/sing-for-android).
 
 ---
 
@@ -47,7 +51,7 @@
 ## Installation & Setup
 
 1. **Install Module**:
-   - Download the latest APK release from [Releases](https://github.com/22cms/sing-for-android/releases).
+   - Download an APK from this fork's [Releases](https://github.com/xyz-sundram/sing-for-android/releases), or [build it locally](docs/BUILDING.md).
    - Install the APK on your device.
 2. **Enable in Xposed Manager**:
    - If using Vector: Open Vector, enable the **Sing for Android** module, and check **Apple Music** in its scope.
@@ -61,46 +65,28 @@
 
 ## Building from Source
 
-### Prerequisites
+See the [local build guide](docs/BUILDING.md) for Linux, macOS, Windows, and WSL
+setup, optional MNN compilation, signing, tests, and manual releases.
 
-- Android Studio Koala / Ladybug or command-line SDK tools.
-- Android NDK (r25c+ to r28 recommended, set via `ANDROID_NDK_HOME` or installed via SDK manager).
-- CMake 3.22.1+.
-- Java 17+.
-
-### 1. Clone with Submodules
-
-This project uses [KissFFT](https://github.com/mborgerding/kissfft) and
-[SpeexDSP](https://github.com/xiph/speexdsp) as submodules in `extern/`.
+With JDK 17 or 21 and the Android SDK packages installed:
 
 ```bash
-# Clone the repository recursively
-git clone --recursive https://github.com/22cms/sing-for-android.git
+git clone --recurse-submodules https://github.com/xyz-sundram/sing-for-android.git
 cd sing-for-android
+./gradlew :app:assembleDebug -PsingNdkVersion=28.0.13004108
 ```
 
-### 2. Build libMNN with Hexagon HTP NPU & Vulkan
+On Windows, use `.\gradlew.bat` in place of `./gradlew`. APKs are written to
+`app/build/outputs/apk/debug/`, including a universal APK and separate
+`arm64-v8a`, `armeabi-v7a`, and `x86_64` APKs.
 
-Run the automated MNN build script, which will patch and compile MNN:
+To build and patch Apple Music locally without root, follow the
+[rootless patching guide](docs/ROOTLESS_PATCHING.md). The Python helper lets you
+select the model and features, embeds Sing using JingMatrix LSPatch, and signs
+an original APK or split archive. It produces the patched Apple Music APKs and
+a matching companion; installation is a separate step.
 
-```bash
-bash scripts/build_mnn.sh
-```
-
-
-### 3. Build Application APK
-
-Build the APK using Gradle:
-
-```bash
-# Build Debug APK (arm64-v8a)
-./gradlew assembleDebug
-
-# Build Release APK
-./gradlew assembleRelease
-```
-
-The resulting APK will be located under `app/build/outputs/apk/`.
+Releases are built and published manually.
 
 ---
 

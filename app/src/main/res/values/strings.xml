@@ -23,6 +23,25 @@
     <string name="update_available_later">Later</string>
 
     <!-- Module Status -->
+    <string name="connection_checking">Checking Apple Music…</string>
+    <string name="connection_checking_desc">Checking the installed app and its Sing connection.</string>
+    <string name="connection_not_installed">Apple Music not installed</string>
+    <string name="connection_not_installed_desc">Install the patched Apple Music APK set in the same Android profile as Sing, then tap Music below.</string>
+    <string name="connection_unreadable">Unable to check Apple Music</string>
+    <string name="connection_unreadable_desc">The Apple Music installation could not be inspected. Open Apple Music and return here to check its connection.</string>
+    <string name="connection_patch_required">Sing patch not detected</string>
+    <string name="connection_patch_required_desc">Apple Music has not connected, and no embedded Sing patch was found. For rootless use, install the generated Apple Music APK set.</string>
+    <string name="connection_sing_not_embedded">Sing missing from Apple Music patch</string>
+    <string name="connection_sing_not_embedded_desc">Apple Music contains a patch loader without an embedded Sing module. Patch it again with Sing in embedded mode.</string>
+    <string name="connection_waiting">Waiting for Apple Music</string>
+    <string name="connection_waiting_desc">The Sing setup is present, but Apple Music has not contacted this app. Tap Music, open a song, then return here. If this persists, check the startup logs.</string>
+    <string name="connection_connected">Connected to Apple Music</string>
+    <string name="connection_connected_desc">Connection confirmed. Use a downloaded model and open the lyrics screen in Apple Music to access Sing.</string>
+    <string name="connection_previous">Previously connected</string>
+    <string name="connection_previous_desc">Apple Music connected earlier. A recent connection has not been confirmed; tap Music and return here to refresh.</string>
+    <string name="connection_version_mismatch">Sing versions do not match</string>
+    <string name="connection_version_mismatch_desc">Install matching patched Apple Music and Sing apps, then force-stop and reopen Apple Music.</string>
+    <string name="connection_engine_version">Sing engine %1$s</string>
     <string name="status_loaded">Module Loaded</string>
     <string name="status_no_model_selected">No model selected</string>
     <string name="label_xposed_manager_name">Xposed Manager</string>
@@ -40,6 +59,13 @@
     <string name="filter_backing_retention">Backing Retention</string>
     <string name="badge_keeps_backing_vocals">Backing Vocals Retained</string>
     <string name="filter_no_models">No models match the selected filters</string>
+
+    <!-- Apple Music Appearance -->
+    <string name="title_apple_music_appearance">Apple Music Appearance</string>
+    <string name="setting_apple_red_tint_title">Apple Red Tint</string>
+    <string name="setting_apple_red_tint_desc">Use Apple red for highlighted controls in Apple Music.</string>
+    <string name="setting_liquid_glass_title">Liquid Glass</string>
+    <string name="setting_liquid_glass_desc">Add refractive glass surfaces to the bottom navigation and mini-player in Apple Music.</string>
 
     <!-- Lyrics Settings -->
     <string name="title_lyrics">Lyrics</string>
@@ -104,7 +130,7 @@
     <string name="benchmark_failed">Benchmark failed</string>
     <string name="benchmark_details_format" translatable="false">Chunk Processing: %1$d ms (Audio Window: 5,921 ms) • STFT (KissFFT 6144): %2$d ms • NN Inference (%3$s): %4$d ms • iSTFT Synthesis: %5$d ms</string>
     <string name="verdict_fast_enough">Your device is fast enough for real-time stem separation. Get ready to Sing!</string>
-    <string name="verdict_too_slow">Inference is slower than real-time audio playback. Audio underruns may occur.</string>
+    <string name="verdict_too_slow">This model is slower than playback. Sing may pause while separation catches up. Choose a model that benchmarks above 1× Real-Time.</string>
     <string name="status_not_loaded">Module Not Loaded</string>
     <string name="tip_not_loaded">Make sure the Sing for Android module is enabled in the Xposed Framework Manager of your choice.</string>
     <string name="title_performance_settings">Performance</string>

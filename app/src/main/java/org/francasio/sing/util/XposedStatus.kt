@@ -1,6 +1,7 @@
 package org.francasio.sing.util
 
 import android.content.Context
+import android.content.pm.PackageManager
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import org.francasio.sing.provider.SingSettings
@@ -51,6 +52,34 @@ object XposedStatus {
     }
 
     fun isBound(): Boolean = boundService != null
+
+    /** Read on a worker thread: the APK check reads its ZIP directory. */
+    internal fun inspectAppleMusic(context: Context): AppleMusicInstallation {
+        return try {
+            @Suppress("DEPRECATION")
+            val info = context.packageManager.getPackageInfo("com.apple.android.music", 0)
+            val path = info.applicationInfo?.sourceDir
+            AppleMusicInstallation(
+                installed = true,
+                patch = if (path != null) AppleMusicConnectionResolver.inspectApk(path) else AppleMusicPatch.UNKNOWN,
+                lastUpdateTime = info.lastUpdateTime
+            )
+        } catch (_: PackageManager.NameNotFoundException) {
+            AppleMusicInstallation(installed = false)
+        } catch (_: SecurityException) {
+            AppleMusicInstallation(installed = true)
+        }
+    }
+
+    internal fun getAppleMusicConnection(context: Context, installation: AppleMusicInstallation): AppleMusicConnection {
+        return AppleMusicConnectionResolver.resolve(
+            installation = installation,
+            heartbeatTime = SingSettings.lastHeartbeatTime,
+            engineVersion = SingSettings.moduleVersion,
+            appVersion = getAppVersion(context),
+            frameworkReady = isBound() || isModuleLoaded()
+        )
+    }
 
     fun getBoundFrameworkInfo(): String? {
         val name = serviceFrameworkName ?: boundService?.frameworkName

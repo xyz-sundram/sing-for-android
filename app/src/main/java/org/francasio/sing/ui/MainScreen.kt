@@ -34,8 +34,10 @@ import org.francasio.sing.ui.sections.QuickActionsRow
 import org.francasio.sing.ui.sections.LyricsSettingsCard
 import org.francasio.sing.ui.sections.SingSettingsCard
 import org.francasio.sing.ui.sections.StatusCard
+import org.francasio.sing.ui.sections.AppearanceSettingsCard
 import org.francasio.sing.ui.theme.AppleMusicSingTheme
 import org.francasio.sing.ui.theme.BackgroundDark
+import org.francasio.sing.util.AppleMusicConnection
 import org.francasio.sing.util.DeviceHelper
 import org.francasio.sing.util.ModelLoader
 
@@ -58,11 +60,9 @@ data class BenchmarkResult(
 
 @Composable
 fun MainScreen(
-    isModuleLoaded: Boolean = false,
-    isModuleVersionMismatch: Boolean = false,
+    connectionStatus: AppleMusicConnection = AppleMusicConnection.CHECKING,
     appVersion: String = "",
     moduleVersion: String = "",
-    xposedManagerInfo: String = "",
     preserveSide: Boolean,
     canPreserveSide: Boolean = true,
     twoWaySlider: Boolean,
@@ -71,6 +71,8 @@ fun MainScreen(
     blurUnfocusedLyrics: Boolean,
     centerGroupLyrics: Boolean,
     englishTranslationFallback: Boolean,
+    appleRedTint: Boolean = false,
+    liquidGlass: Boolean = false,
     ecoMode: Boolean,
     hardwareTarget: String,
     selectedModelId: String,
@@ -83,6 +85,8 @@ fun MainScreen(
     onBlurUnfocusedLyricsChange: (Boolean) -> Unit,
     onCenterGroupLyricsChange: (Boolean) -> Unit,
     onEnglishTranslationFallbackChange: (Boolean) -> Unit,
+    onAppleRedTintChange: (Boolean) -> Unit = {},
+    onLiquidGlassChange: (Boolean) -> Unit = {},
     onEcoModeChange: (Boolean) -> Unit,
     onHardwareTargetChange: (String) -> Unit,
     onThreadCountChange: (Int) -> Unit,
@@ -142,11 +146,9 @@ fun MainScreen(
 
                 // 1. Status Card
                 StatusCard(
-                    isModuleLoaded = isModuleLoaded,
-                    isModuleVersionMismatch = isModuleVersionMismatch,
+                    connectionStatus = connectionStatus,
                     appVersion = appVersion,
                     moduleVersion = moduleVersion,
-                    xposedManagerInfo = xposedManagerInfo,
                     selectedModelId = selectedModelId,
                     currentModel = currentModel,
                     threadCount = threadCount,
@@ -188,6 +190,15 @@ fun MainScreen(
                     onBlurUnfocusedLyricsChange = onBlurUnfocusedLyricsChange,
                     onCenterGroupLyricsChange = onCenterGroupLyricsChange,
                     onEnglishTranslationFallbackChange = onEnglishTranslationFallbackChange
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                AppearanceSettingsCard(
+                    appleRedTint = appleRedTint,
+                    liquidGlass = liquidGlass,
+                    onAppleRedTintChange = onAppleRedTintChange,
+                    onLiquidGlassChange = onLiquidGlassChange
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -239,7 +250,7 @@ fun MainScreen(
 fun MainScreenPreview() {
     AppleMusicSingTheme {
         MainScreen(
-            isModuleLoaded = true,
+            connectionStatus = AppleMusicConnection.CONNECTED,
             preserveSide = false,
             twoWaySlider = true,
             allowZeroFloor = true,

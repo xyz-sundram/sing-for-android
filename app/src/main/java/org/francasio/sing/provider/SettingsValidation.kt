@@ -8,6 +8,7 @@ internal object SettingsValidation {
         SingSettings.KEY_ENGLISH_TRANSLATION_FALLBACK, SingSettings.KEY_ECO_MODE,
         SingSettings.KEY_FORCE_CPU, SingSettings.KEY_ALLOW_ZERO_FLOOR,
         SingSettings.KEY_FORCE_SONG_ELIGIBILITY, SingSettings.KEY_MATERIAL_YOU,
+        SingSettings.KEY_APPLE_RED_TINT, SingSettings.KEY_LIQUID_GLASS,
         SingSettings.KEY_BACK_TIP_LEARNED
     )
 

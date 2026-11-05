@@ -20,6 +20,8 @@ object SingSettings {
     const val KEY_CENTER_GROUP_LYRICS = "center_group_lyrics"
     const val KEY_BLUR_UNFOCUSED_LYRICS = "blur_unfocused_lyrics"
     const val KEY_ENGLISH_TRANSLATION_FALLBACK = "english_translation_fallback"
+    const val KEY_APPLE_RED_TINT = "apple_red_tint"
+    const val KEY_LIQUID_GLASS = "liquid_glass"
     const val KEY_THREAD_COUNT = "thread_count"
     const val KEY_ECO_MODE = "eco_mode"
     const val KEY_HARDWARE_TARGET = "hardware_target"
@@ -96,6 +98,12 @@ object SingSettings {
     var englishTranslationFallback: Boolean = true
 
     @Volatile
+    var appleRedTint: Boolean = false
+
+    @Volatile
+    var liquidGlass: Boolean = false
+
+    @Volatile
     var threadCount: Int = 4
 
     @Volatile
@@ -139,12 +147,15 @@ object SingSettings {
 
     // Called by MainActivity (module app)
     fun loadLocal(context: Context) {
+        PatchDefaults.apply(context, PREFS_MODULE)
         val prefs = context.getSharedPreferences(PREFS_MODULE, Context.MODE_PRIVATE)
         preserveSide = prefs.getBoolean(KEY_PRESERVE_SIDE, false)
         twoWaySlider = prefs.getBoolean(KEY_TWO_WAY_SLIDER, false)
         centerGroupLyrics = prefs.getBoolean(KEY_CENTER_GROUP_LYRICS, false)
         blurUnfocusedLyrics = prefs.getBoolean(KEY_BLUR_UNFOCUSED_LYRICS, false)
         englishTranslationFallback = prefs.getBoolean(KEY_ENGLISH_TRANSLATION_FALLBACK, true)
+        appleRedTint = prefs.getBoolean(KEY_APPLE_RED_TINT, false)
+        liquidGlass = prefs.getBoolean(KEY_LIQUID_GLASS, false)
         threadCount = prefs.getInt(KEY_THREAD_COUNT, 4)
         ecoMode = prefs.getBoolean(KEY_ECO_MODE, true)
         val savedTarget = prefs.getString(KEY_HARDWARE_TARGET, null)
@@ -243,6 +254,8 @@ object SingSettings {
             KEY_CENTER_GROUP_LYRICS -> centerGroupLyrics = value
             KEY_BLUR_UNFOCUSED_LYRICS -> blurUnfocusedLyrics = value
             KEY_ENGLISH_TRANSLATION_FALLBACK -> englishTranslationFallback = value
+            KEY_APPLE_RED_TINT -> appleRedTint = value
+            KEY_LIQUID_GLASS -> liquidGlass = value
             KEY_ECO_MODE -> ecoMode = value
             KEY_FORCE_CPU -> {
                 forceCpu = value
@@ -321,6 +334,8 @@ object SingSettings {
             putExtra(KEY_CENTER_GROUP_LYRICS, centerGroupLyrics)
             putExtra(KEY_BLUR_UNFOCUSED_LYRICS, blurUnfocusedLyrics)
             putExtra(KEY_ENGLISH_TRANSLATION_FALLBACK, englishTranslationFallback)
+            putExtra(KEY_APPLE_RED_TINT, appleRedTint)
+            putExtra(KEY_LIQUID_GLASS, liquidGlass)
             putExtra(KEY_THREAD_COUNT, threadCount)
             putExtra(KEY_ECO_MODE, ecoMode)
             putExtra(KEY_HARDWARE_TARGET, hardwareTarget)
@@ -385,6 +400,8 @@ object SingSettings {
                 centerGroupLyrics = bundle.getBoolean(KEY_CENTER_GROUP_LYRICS, centerGroupLyrics)
                 blurUnfocusedLyrics = bundle.getBoolean(KEY_BLUR_UNFOCUSED_LYRICS, blurUnfocusedLyrics)
                 englishTranslationFallback = bundle.getBoolean(KEY_ENGLISH_TRANSLATION_FALLBACK, englishTranslationFallback)
+                appleRedTint = bundle.getBoolean(KEY_APPLE_RED_TINT, false)
+                liquidGlass = bundle.getBoolean(KEY_LIQUID_GLASS, false)
                 threadCount = bundle.getInt(KEY_THREAD_COUNT, threadCount)
                 ecoMode = bundle.getBoolean(KEY_ECO_MODE, ecoMode)
                 val providerTarget = bundle.getString(KEY_HARDWARE_TARGET)
@@ -413,6 +430,8 @@ object SingSettings {
                         .putBoolean(KEY_CENTER_GROUP_LYRICS, centerGroupLyrics)
                         .putBoolean(KEY_BLUR_UNFOCUSED_LYRICS, blurUnfocusedLyrics)
                         .putBoolean(KEY_ENGLISH_TRANSLATION_FALLBACK, englishTranslationFallback)
+                        .putBoolean(KEY_APPLE_RED_TINT, appleRedTint)
+                        .putBoolean(KEY_LIQUID_GLASS, liquidGlass)
                         .putInt(KEY_THREAD_COUNT, threadCount)
                         .putBoolean(KEY_ECO_MODE, ecoMode)
                         .putString(KEY_HARDWARE_TARGET, hardwareTarget)
@@ -505,6 +524,7 @@ object SingSettings {
     // Called by SingAudioProcessor (inside Apple Music process)
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     fun initInAppleMusic(context: Context, managerInfo: String? = null, onChange: () -> Unit) {
+        PatchDefaults.apply(context, PREFS_CACHE, resolvedModulePath)
         onChangeCallback = onChange
         // Send initial heartbeat
         sendHeartbeat(context, managerInfo)
@@ -518,6 +538,8 @@ object SingSettings {
             centerGroupLyrics = prefs.getBoolean(KEY_CENTER_GROUP_LYRICS, true)
             blurUnfocusedLyrics = prefs.getBoolean(KEY_BLUR_UNFOCUSED_LYRICS, true)
             englishTranslationFallback = prefs.getBoolean(KEY_ENGLISH_TRANSLATION_FALLBACK, true)
+            appleRedTint = prefs.getBoolean(KEY_APPLE_RED_TINT, false)
+            liquidGlass = prefs.getBoolean(KEY_LIQUID_GLASS, false)
             threadCount = prefs.getInt(KEY_THREAD_COUNT, 4)
             ecoMode = prefs.getBoolean(KEY_ECO_MODE, true)
             val cachedTarget = prefs.getString(KEY_HARDWARE_TARGET, null)

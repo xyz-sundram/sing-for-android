@@ -33,6 +33,11 @@ app/.cxx/
 # Scratch & development artifacts
 scratch/
 artifacts/
+.patcher/
+__pycache__/
+*.apkm
+*.apks
+*.xapk
 # Local agent testing notes (not public project documentation)
 /docs/TESTING.md
 *.log

@@ -27,4 +27,13 @@ class SettingsValidationTest {
         assertTrue(SettingsValidation.isValidSetting(SingSettings.KEY_ECO_MODE, false))
         assertTrue(SettingsValidation.isValidSetting(SingSettings.KEY_SELECTED_MODEL, ""))
     }
+
+    @Test fun appearanceOptionsRequireBooleanValues() {
+        for (key in listOf(SingSettings.KEY_APPLE_RED_TINT, SingSettings.KEY_LIQUID_GLASS)) {
+            assertTrue(SettingsValidation.isValidSetting(key, true))
+            assertTrue(SettingsValidation.isValidSetting(key, false))
+            assertFalse(SettingsValidation.isValidSetting(key, "true"))
+            assertFalse(SettingsValidation.isValidSetting(key, 1))
+        }
+    }
 }

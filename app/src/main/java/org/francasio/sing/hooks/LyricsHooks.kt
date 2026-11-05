@@ -339,6 +339,9 @@ class LyricsHooks(
                         val vocalCtrl = chain.thisObject as View
                         currentVocalCtrl = WeakReference(vocalCtrl)
                         val res = chain.proceed(arrayOf(fraction))
+                        // Touch dragging updates this field before the host's
+                        // asynchronous controller/renderer callbacks arrive.
+                        audioProcessor?.takeIf { it.isEnabled }?.vocalLevel = fraction
                         updateSliderIcon(vocalCtrl, fraction)
                         res
                     }

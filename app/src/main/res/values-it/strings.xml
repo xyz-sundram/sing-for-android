@@ -11,10 +11,34 @@
     <string name="open_apple_music">Apri Apple Music</string>
 
     <string name="status_loaded">Modulo Caricato</string>
+    <string name="connection_checking">Verifica di Apple Music…</string>
+    <string name="connection_checking_desc">Verifica dell’app installata e del collegamento con Sing.</string>
+    <string name="connection_not_installed">Apple Music non installata</string>
+    <string name="connection_not_installed_desc">Installa tutti gli APK di Apple Music con la patch nello stesso profilo Android di Sing, poi tocca Musica qui sotto.</string>
+    <string name="connection_unreadable">Impossibile verificare Apple Music</string>
+    <string name="connection_unreadable_desc">Impossibile esaminare l’installazione di Apple Music. Apri Apple Music e torna qui per verificare il collegamento.</string>
+    <string name="connection_patch_required">Patch Sing non rilevata</string>
+    <string name="connection_patch_required_desc">Apple Music non si è collegata e non è stata trovata una patch Sing integrata. Per l’uso senza root, installa gli APK di Apple Music generati dalla patch.</string>
+    <string name="connection_sing_not_embedded">Sing assente dalla patch di Apple Music</string>
+    <string name="connection_sing_not_embedded_desc">Apple Music contiene un loader senza il modulo Sing integrato. Applica di nuovo la patch con Sing in modalità integrata.</string>
+    <string name="connection_waiting">In attesa di Apple Music</string>
+    <string name="connection_waiting_desc">Sing è configurato, ma Apple Music non ha ancora contattato questa app. Tocca Musica, apri un brano e torna qui. Se il problema persiste, controlla i log di avvio.</string>
+    <string name="connection_connected">Collegato ad Apple Music</string>
+    <string name="connection_connected_desc">Collegamento confermato. Usa un modello scaricato e apri la schermata dei testi in Apple Music per accedere a Sing.</string>
+    <string name="connection_previous">Collegato in precedenza</string>
+    <string name="connection_previous_desc">Apple Music si è collegata in precedenza, ma manca una conferma recente. Tocca Musica e torna qui per aggiornare lo stato.</string>
+    <string name="connection_version_mismatch">Le versioni di Sing non corrispondono</string>
+    <string name="connection_version_mismatch_desc">Installa versioni corrispondenti di Apple Music con la patch e di Sing, poi forza l’arresto e riapri Apple Music.</string>
+    <string name="connection_engine_version">Motore Sing %1$s</string>
     <string name="status_no_model_selected">Nessun modello selezionato</string>
     <string name="label_xposed_manager_name">Manager Xposed</string>
     <string name="label_neural_model">Modello Neurale</string>
     <string name="status_model_format">%1$s • %2$d thread</string>
+    <string name="title_apple_music_appearance">Aspetto di Apple Music</string>
+    <string name="setting_apple_red_tint_title">Colore rosso Apple</string>
+    <string name="setting_apple_red_tint_desc">Usa il rosso Apple per i controlli evidenziati in Apple Music.</string>
+    <string name="setting_liquid_glass_title">Liquid Glass</string>
+    <string name="setting_liquid_glass_desc">Aggiungi superfici in vetro rifrangente alla barra di navigazione inferiore e al mini-player di Apple Music.</string>
     <string name="title_model_selection">Modelli Neurali</string>
     <string name="desc_model_selection">Seleziona e scarica il modello neurale che intendi usare per la modalità Sing.</string>
     <string name="model_info_title">Hardware, Precisione &amp; Categorie di Modelli</string>
@@ -80,7 +104,7 @@
     <string name="downloading">Download in corso…</string>
 
     <string name="verdict_fast_enough">Il tuo dispositivo è abbastanza veloce per eseguire la separazione vocale in tempo reale. Preparati a cantare!</string>
-    <string name="verdict_too_slow">Il tempo d\'inferenza è più lento della riproduzione in tempo reale. Potrebbero verificarsi degli underrun sull\'audio.</string>
+    <string name="verdict_too_slow">Questo modello è più lento della riproduzione. Sing potrebbe fermarsi in attesa della separazione. Scegli un modello che superi 1× Real-Time nel benchmark.</string>
     <string name="status_not_loaded">Modulo Non Caricato</string>
     <string name="tip_not_loaded">Assicurati che il modulo Sing for Android sia abilitato nel tuo manager Xposed Framework.</string>
     <string name="title_performance_settings">Prestazioni</string>
